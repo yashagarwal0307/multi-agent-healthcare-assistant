@@ -1,0 +1,4 @@
+sku,drug_name,indication,age_min,contra_allergy_keywords,dose,freq
+OTC001,Paracetamol 500mg,pneumonia,0,aspirin,500mg,q8h
+OTC002,Cough Syrup,covid_suspect,2,None,10ml,q8h
+OTC003,Oral Rehydration,covid_suspect,0,None,1pkt,as needed
