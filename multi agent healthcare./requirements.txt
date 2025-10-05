@@ -1,0 +1,7 @@
+streamlit
+pandas
+pillow
+pymupdf
+pytesseract
+langchain
+pytest
