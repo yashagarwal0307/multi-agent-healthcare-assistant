@@ -20,7 +20,7 @@ Educational demo implementing a multi-agent pipeline for simulated COVID-style t
 ## Quick start (local)
 ```bash
 git clone https://github.com/YOUR_USERNAME/multi-agent-healthcare.git
-cd multi-agent-healthcare
+cd multi_agent_healthcare
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
