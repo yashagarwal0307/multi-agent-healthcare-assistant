@@ -1,0 +1,11 @@
+{
+  "patient": {"age":45,"allergies":["ibuprofen"]},
+  "condition":"pneumonia",
+  "confidence":0.42,
+  "otc_options":[{"sku":"OTC001","drug_name":"Paracetamol 500mg","dose":"500mg","freq":"q8h"}],
+  "red_flags":["Possible infectious condition"],
+  "pharmacy":{"pharmacy_id":"ph001","name":"MedQuick Andheri","items":[{"sku":"OTC001","qty":10}],"eta_min":60,"delivery_fee":25},
+  "doctor":null,
+  "disclaimer":"Educational demo only — Not medical advice.",
+  "timestamp":"2025-10-05T12:00:00Z"
+}
