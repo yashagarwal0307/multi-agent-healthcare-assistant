@@ -1,0 +1,4 @@
+[
+  {"id":"ph001","name":"MedQuick Andheri","lat":19.12,"lon":72.84,"services":["24x7","delivery"],"delivery_km":12,"delivery_fee":25},
+  {"id":"ph002","name":"HealthPoint Juhu","lat":19.09,"lon":72.82,"services":["delivery"],"delivery_km":8,"delivery_fee":30}
+]
