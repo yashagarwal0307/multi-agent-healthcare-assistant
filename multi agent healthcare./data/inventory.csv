@@ -1,0 +1,5 @@
+pharmacy_id,sku,drug_name,form,strength,price,qty
+ph001,OTC001,Paracetamol,tablet,500mg,30,50
+ph001,OTC002,Cough Syrup,syrup,100ml,80,20
+ph001,OTC003,Oral Rehydration,powder,1pkt,40,100
+ph002,OTC001,Paracetamol,tablet,500mg,32,10
