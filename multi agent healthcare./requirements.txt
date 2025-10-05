@@ -3,5 +3,5 @@ pandas
 pillow
 pymupdf
 pytesseract
-langchain
+langgraph
 pytest
