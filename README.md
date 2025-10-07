@@ -1,4 +1,5 @@
 # Multi-Agent Healthcare Assistant — Demo
+App link- https://multi-agent-healthcare-assistant-8gqqmwt8c7g2shwhw57cbv.streamlit.app/
 
 Educational demo implementing a multi-agent pipeline for simulated COVID-style triage.
 **Not medical advice.** This is a proof-of-concept for assignment/demonstration only.
