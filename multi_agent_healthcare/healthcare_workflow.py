@@ -190,7 +190,7 @@ from tensorflow import keras
 import numpy as np
 from PIL import Image
 
-def real_imaging_agent(state: Dict[str, Any]) -> Dict[str, Any]:
+def imaging_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Real CNN-based medical image analysis
     """
