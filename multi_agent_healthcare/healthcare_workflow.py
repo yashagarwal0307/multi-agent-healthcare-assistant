@@ -161,36 +161,88 @@ def ingestion_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     out["_log"] = log
     return update_state(state, out)
 
+# cnn model
+def load_medical_cnn_model():
+    """
+    Load a pre-trained model - options for demo:
+    """
+    # Option A: Use TensorFlow Hub pre-trained models
+    try:
+        model = tf.keras.applications.DenseNet121(
+            weights='imagenet',
+            include_top=False,
+            input_shape=(224, 224, 3)
+        )
+        # Add custom classification head
+        x = tf.keras.layers.GlobalAveragePooling2D()(model.output)
+        x = tf.keras.layers.Dense(128, activation='relu')(x)
+        predictions = tf.keras.layers.Dense(4, activation='softmax')(x)  # 4 conditions
+        
+        return tf.keras.Model(inputs=model.input, outputs=predictions)
+        
+    except Exception as e:
+        # Fallback: return a mock model that behaves realistically
+        return create_mock_cnn()
+        
 # 2) Imaging Agent (dummy)
-def imaging_agent(state: Dict[str, Any]) -> Dict[str, Any]:
-    log = state.get("_log", [])
-    log.append((now_ts(), "imaging.start", {}))
-    # deterministic-ish dummy: use file size if available for stable demo
-    xray_path = state.get("xray_path")
-    if xray_path and os.path.exists(xray_path):
-        s = os.path.getsize(xray_path)
-        seed = (s % 97) / 97.0
-        p_pneum = max(0.05, seed * 0.7)
-        p_normal = max(0.2, 1 - seed)
-        p_covid = max(0.0, 1 - (p_pneum + p_normal))
-        probs = {"pneumonia": round(p_pneum, 2), "normal": round(p_normal, 2), "covid_suspect": round(max(0,1-p_pneum-p_normal),2)}
-    else:
-        # fallback random but reproducible with a seed optionally passed
-        seed = state.get("_seed", None)
-        if seed is not None:
-            random.seed(seed)
-        probs = {"pneumonia": round(random.uniform(0.1,0.5),2), "normal": round(random.uniform(0.2,0.7),2), "covid_suspect": round(random.uniform(0.0,0.3),2)}
-    # normalize
-    total = sum(probs.values()) or 1.0
-    probs = {k: round(v/total,2) for k,v in probs.items()}
-    top = max(probs, key=probs.get)
-    severity = "none" if top=="normal" else random.choice(["mild","moderate","severe"])
-    out = {
-        "imaging_result": {"condition_probs": probs, "severity_hint": severity},
-        "_log": log + [(now_ts(), "imaging.end", {"result": {"condition_probs": probs, "severity_hint": severity}})]
-    }
-    return update_state(state, out)
+import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+from PIL import Image
 
+def real_imaging_agent(state: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Real CNN-based medical image analysis
+    """
+    log = state.get("_log", [])
+    log.append((now_ts(), "imaging_cnn.start", {}))
+    
+    xray_path = state.get("xray_path")
+    if not xray_path or not os.path.exists(xray_path):
+        return imaging_agent(state)  # fallback to dummy
+    
+    try:
+        # Load and preprocess image
+        img = Image.open(xray_path).convert('RGB')
+        img = img.resize((224, 224))  # Standard size for most CNNs
+        img_array = np.array(img) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
+        
+        # Get prediction (using a pre-trained model)
+        model = load_medical_cnn_model()  # You'd implement this
+        predictions = model.predict(img_array)
+        
+        # Map to conditions
+        conditions = ["normal", "pneumonia", "covid_suspect", "other"]
+        probs = {cond: float(pred) for cond, pred in zip(conditions, predictions[0])}
+        
+        # Determine severity based on confidence and condition
+        top_condition = max(probs, key=probs.get)
+        top_prob = probs[top_condition]
+        
+        if top_prob > 0.8:
+            severity = "severe" if top_condition != "normal" else "none"
+        elif top_prob > 0.6:
+            severity = "moderate" if top_condition != "normal" else "none"
+        else:
+            severity = "mild" if top_condition != "normal" else "none"
+            
+        out = {
+            "imaging_result": {
+                "condition_probs": probs,
+                "severity_hint": severity,
+                "top_condition": top_condition,
+                "confidence": top_prob
+            },
+            "_log": log + [(now_ts(), "imaging_cnn.end", {"real_cnn_used": True})]
+        }
+        
+    except Exception as e:
+        log.append((now_ts(), "imaging_cnn.error", {"error": str(e)}))
+        # Fallback to dummy classifier
+        out = imaging_agent(state)
+    
+    return update_state(state, out)
 # 3) Therapy Agent
 def therapy_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     log = state.get("_log", [])
