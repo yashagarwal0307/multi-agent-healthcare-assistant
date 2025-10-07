@@ -534,6 +534,7 @@ def run_pipeline(input_state: Dict[str, Any]) -> Dict[str, Any]:
     return state
 
 # If run as script for quick test
+# If run as script for quick test
 if __name__ == "__main__":
     random.seed(42)
     demo_state = {
@@ -545,8 +546,39 @@ if __name__ == "__main__":
     
     # Print human-readable output
     final_output = out.get("final_output", {})
+    
+    # Check if human_readable exists, otherwise fallback
     if "human_readable" in final_output:
+        print("=" * 60)
         print(final_output["human_readable"])
+        print("=" * 60)
+        
+        # Optional: Also show structured data
+        print("\n" + "STRUCTURED DATA (for reference):")
+        print(json.dumps(final_output.get("structured_data", {}), indent=2))
     else:
-        # Fallback to JSON for older version
-        print(json.dumps(final_output, indent=2))
+        # Fallback to old format
+        print("HUMAN READABLE FORMAT:")
+        print("-" * 40)
+        
+        # Manual formatting for old structure
+        data = final_output if final_output else out
+        print(f"Patient: {data.get('patient', {}).get('age')} years old")
+        print(f"Condition: {data.get('condition', 'Unknown')}")
+        print(f"Confidence: {data.get('confidence', 0)*100}%")
+        
+        print("\nPrescribed Medications:")
+        for med in data.get('otc_options', []):
+            print(f"  - {med.get('drug_name')}: {med.get('dose')} every {med.get('freq')}")
+        
+        if data.get('red_flags'):
+            print("\nWarnings:")
+            for flag in data.get('red_flags', []):
+                print(f"  ⚠️  {flag}")
+        
+        if data.get('pharmacy', {}).get('pharmacy_id'):
+            print(f"\nPharmacy: {data.get('pharmacy', {}).get('name')}")
+            print(f"Delivery: {data.get('pharmacy', {}).get('eta_min')} min")
+        
+        if data.get('doctor', {}).get('doctor_id'):
+            print(f"\nDoctor Consultation: {data.get('doctor', {}).get('name')}")
