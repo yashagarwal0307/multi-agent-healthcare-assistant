@@ -6,6 +6,11 @@ from healthcare_workflow import UPLOADS_DIR
 st.set_page_config(page_title="Multi-Agent Healthcare Assistant", layout="wide")
 st.title("🩺 Multi-Agent Healthcare Assistant — Demo")
 st.markdown("**Disclaimer:** Educational demo only — Not medical advice.")
+st.markdown("""
+This is a simulation-only healthcare assistant built with modular agents.  
+It accepts chest X-rays and optional reports, and suggests OTC treatments.  
+All recommendations are strictly non-clinical and for educational purposes only.
+""")
 
 with st.sidebar:
     st.header("Upload patient data")
