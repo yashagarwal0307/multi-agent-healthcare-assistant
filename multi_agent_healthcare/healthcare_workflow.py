@@ -401,14 +401,14 @@ def coordinator(state: Dict[str, Any]) -> Dict[str, Any]:
     else:
         log.append((now_ts(), "coordinator.no_escalation", {"conf": conf}))
     
-    # Create human-readable summary
-    final = create_human_readable_summary(state)
+    # Create ONLY human-readable output (no structured data)
+    human_readable = create_human_readable_summary(state)
     
     log.append((now_ts(), "coordinator.end", {"final_summary_present": True}))
-    return update_state(state, {"final_output": final, "_log": log})
+    return update_state(state, {"final_output": human_readable, "_log": log})
 
-def create_human_readable_summary(state: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate human-readable medical summary"""
+def create_human_readable_summary(state: Dict[str, Any]) -> str:
+    """Generate human-readable medical summary as a single string"""
     patient = state.get("patient", {})
     therapy = state.get("therapy_plan", {})
     pharmacy = state.get("pharmacy_match", {})
@@ -466,7 +466,13 @@ def create_human_readable_summary(state: Dict[str, Any]) -> Dict[str, Any]:
         if pharmacy.get("items"):
             summary_parts.append("Medications to be delivered:")
             for item in pharmacy.get("items", []):
-                summary_parts.append(f"  • {item.get('sku')} (Qty: {item.get('qty', 1)})")
+                # Find drug name for this SKU
+                drug_name = "Unknown"
+                for med in otc_options:
+                    if med.get('sku') == item.get('sku'):
+                        drug_name = med.get('drug_name')
+                        break
+                summary_parts.append(f"  • {drug_name} (Qty: {item.get('qty', 1)})")
     else:
         summary_parts.append("No pharmacy match found - please visit local pharmacy")
     summary_parts.append("")
@@ -506,21 +512,8 @@ def create_human_readable_summary(state: Dict[str, Any]) -> Dict[str, Any]:
     summary_parts.append("📍 **DISCLAIMER**: Educational demo only — Not medical advice.")
     summary_parts.append(f"Generated on: {now_ts()}")
     
-    # Return both structured data and human-readable format
-    return {
-        "structured_data": {
-            "patient": patient,
-            "condition": therapy.get("condition"),
-            "confidence": therapy.get("confidence"),
-            "otc_options": therapy.get("otc_options"),
-            "red_flags": therapy.get("red_flags"),
-            "pharmacy": pharmacy,
-            "doctor": doctor,
-            "timestamp": now_ts()
-        },
-        "human_readable": "\n".join(summary_parts),
-        "disclaimer": "Educational demo only — Not medical advice."
-    }
+    # Return ONLY the human-readable string
+    return "\n".join(summary_parts)
 # ---------- Pipeline runner ----------
 def run_pipeline(input_state: Dict[str, Any]) -> Dict[str, Any]:
     # pipeline: ingestion -> imaging -> therapy -> pharmacy -> coordinator
@@ -535,6 +528,7 @@ def run_pipeline(input_state: Dict[str, Any]) -> Dict[str, Any]:
 
 # If run as script for quick test
 # If run as script for quick test
+# If run as script for quick test
 if __name__ == "__main__":
     random.seed(42)
     demo_state = {
@@ -544,41 +538,8 @@ if __name__ == "__main__":
     }
     out = run_pipeline(demo_state)
     
-    # Print human-readable output
-    final_output = out.get("final_output", {})
-    
-    # Check if human_readable exists, otherwise fallback
-    if "human_readable" in final_output:
-        print("=" * 60)
-        print(final_output["human_readable"])
-        print("=" * 60)
-        
-        # Optional: Also show structured data
-        print("\n" + "STRUCTURED DATA (for reference):")
-        print(json.dumps(final_output.get("structured_data", {}), indent=2))
-    else:
-        # Fallback to old format
-        print("HUMAN READABLE FORMAT:")
-        print("-" * 40)
-        
-        # Manual formatting for old structure
-        data = final_output if final_output else out
-        print(f"Patient: {data.get('patient', {}).get('age')} years old")
-        print(f"Condition: {data.get('condition', 'Unknown')}")
-        print(f"Confidence: {data.get('confidence', 0)*100}%")
-        
-        print("\nPrescribed Medications:")
-        for med in data.get('otc_options', []):
-            print(f"  - {med.get('drug_name')}: {med.get('dose')} every {med.get('freq')}")
-        
-        if data.get('red_flags'):
-            print("\nWarnings:")
-            for flag in data.get('red_flags', []):
-                print(f"  ⚠️  {flag}")
-        
-        if data.get('pharmacy', {}).get('pharmacy_id'):
-            print(f"\nPharmacy: {data.get('pharmacy', {}).get('name')}")
-            print(f"Delivery: {data.get('pharmacy', {}).get('eta_min')} min")
-        
-        if data.get('doctor', {}).get('doctor_id'):
-            print(f"\nDoctor Consultation: {data.get('doctor', {}).get('name')}")
+    # Print ONLY the human-readable output
+    final_output = out.get("final_output", "")
+    print("=" * 60)
+    print(final_output)
+    print("=" * 60)
