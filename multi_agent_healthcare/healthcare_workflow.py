@@ -1,4 +1,5 @@
 # healthcare_workflow.py
+# healthcare_workflow.py
 """
 Multi-Agent Healthcare Assistant pipeline (plain Python agents).
 - IngestionAgent (image + PDF upload handling, OCR if available, de-id)
@@ -389,131 +390,30 @@ CONF_THRESHOLD = 0.40
 def coordinator(state: Dict[str, Any]) -> Dict[str, Any]:
     log = state.get("_log", [])
     log.append((now_ts(), "coordinator.start", {}))
-    
     therapy = state.get("therapy_plan", {})
     red_flags = therapy.get("red_flags", [])
     conf = therapy.get("confidence", 1.0)
-    
     # escalate if red flags or low confidence
     if red_flags or conf < CONF_THRESHOLD:
         log.append((now_ts(), "coordinator.escalation_decision", {"conf": conf, "red_flags": red_flags}))
         state = doctor_agent(state)
     else:
         log.append((now_ts(), "coordinator.no_escalation", {"conf": conf}))
-    
-    # Create ONLY human-readable output (no structured data)
-    human_readable = create_human_readable_summary(state)
-    
+    # create final output JSON
+    final = {
+        "patient": state.get("patient"),
+        "condition": therapy.get("condition"),
+        "confidence": therapy.get("confidence"),
+        "otc_options": therapy.get("otc_options"),
+        "red_flags": therapy.get("red_flags"),
+        "pharmacy": state.get("pharmacy_match"),
+        "doctor": state.get("doctor_escalation"),
+        "disclaimer": "Educational demo only — Not medical advice.",
+        "timestamp": now_ts()
+    }
     log.append((now_ts(), "coordinator.end", {"final_summary_present": True}))
-    return update_state(state, {"final_output": human_readable, "_log": log})
+    return update_state(state, {"final_output": final, "_log": log})
 
-def create_human_readable_summary(state: Dict[str, Any]) -> str:
-    """Generate human-readable medical summary as a single string"""
-    patient = state.get("patient", {})
-    therapy = state.get("therapy_plan", {})
-    pharmacy = state.get("pharmacy_match", {})
-    doctor = state.get("doctor_escalation", {})
-    imaging = state.get("imaging_result", {})
-    
-    # Build human-readable sections
-    summary_parts = []
-    
-    # 1. Patient Information
-    summary_parts.append("🏥 **HEALTHCARE ASSISTANT REPORT**")
-    summary_parts.append("=" * 50)
-    summary_parts.append(f"Patient Age: {patient.get('age', 'N/A')} years")
-    if patient.get('allergies'):
-        summary_parts.append(f"Allergies: {', '.join(patient.get('allergies', []))}")
-    summary_parts.append("")
-    
-    # 2. Diagnosis Results
-    summary_parts.append("🔍 **DIAGNOSIS RESULTS**")
-    summary_parts.append("-" * 30)
-    condition = therapy.get("condition", "unknown")
-    confidence = therapy.get("confidence", 0) * 100
-    severity = imaging.get("severity_hint", "unknown")
-    
-    summary_parts.append(f"Condition: {condition.upper()}")
-    summary_parts.append(f"Confidence Level: {confidence:.1f}%")
-    summary_parts.append(f"Severity: {severity.title()}")
-    summary_parts.append("")
-    
-    # 3. Prescribed Medication
-    summary_parts.append("💊 **PRESCRIBED MEDICATION**")
-    summary_parts.append("-" * 30)
-    otc_options = therapy.get("otc_options", [])
-    
-    if otc_options:
-        for i, med in enumerate(otc_options, 1):
-            summary_parts.append(f"{i}. {med.get('drug_name', 'Unknown')}")
-            summary_parts.append(f"   Dose: {med.get('dose', 'N/A')}")
-            summary_parts.append(f"   Frequency: {med.get('freq', 'N/A')}")
-            if med.get('warnings'):
-                for warning in med.get('warnings', []):
-                    summary_parts.append(f"   ⚠️  Warning: {warning}")
-    else:
-        summary_parts.append("No medication prescribed")
-    summary_parts.append("")
-    
-    # 4. Pharmacy Information
-    summary_parts.append("🏪 **PHARMACY DETAILS**")
-    summary_parts.append("-" * 30)
-    if pharmacy and pharmacy.get("pharmacy_id"):
-        summary_parts.append(f"Pharmacy: {pharmacy.get('name', 'Local Pharmacy')}")
-        summary_parts.append(f"Estimated Delivery: {pharmacy.get('eta_min', 'N/A')} minutes")
-        summary_parts.append(f"Delivery Fee: ${pharmacy.get('delivery_fee', 0)}")
-        
-        if pharmacy.get("items"):
-            summary_parts.append("Medications to be delivered:")
-            for item in pharmacy.get("items", []):
-                # Find drug name for this SKU
-                drug_name = "Unknown"
-                for med in otc_options:
-                    if med.get('sku') == item.get('sku'):
-                        drug_name = med.get('drug_name')
-                        break
-                summary_parts.append(f"  • {drug_name} (Qty: {item.get('qty', 1)})")
-    else:
-        summary_parts.append("No pharmacy match found - please visit local pharmacy")
-    summary_parts.append("")
-    
-    # 5. Red Flags & Warnings
-    red_flags = therapy.get("red_flags", [])
-    if red_flags:
-        summary_parts.append("🚨 **IMPORTANT WARNINGS**")
-        summary_parts.append("-" * 30)
-        for flag in red_flags:
-            summary_parts.append(f"⚠️  {flag}")
-        summary_parts.append("")
-    
-    # 6. Doctor Consultation
-    if doctor and doctor.get("doctor_id"):
-        summary_parts.append("👨‍⚕️ **DOCTOR CONSULTATION**")
-        summary_parts.append("-" * 30)
-        summary_parts.append(f"Doctor: {doctor.get('name', 'Dr. Smith')}")
-        summary_parts.append(f"Specialty: {doctor.get('specialty', 'General Medicine')}")
-        if doctor.get('tele_slot'):
-            summary_parts.append(f"Scheduled Time: {doctor.get('tele_slot')}")
-        summary_parts.append("")
-    
-    # 7. Final Instructions
-    summary_parts.append("📋 **NEXT STEPS**")
-    summary_parts.append("-" * 30)
-    if red_flags or doctor.get("doctor_id"):
-        summary_parts.append("1. Schedule tele-consultation with doctor")
-        summary_parts.append("2. Do not take any medication until doctor consultation")
-        summary_parts.append("3. Seek immediate care if symptoms worsen")
-    else:
-        summary_parts.append("1. Proceed with prescribed OTC medications")
-        summary_parts.append("2. Monitor symptoms for 2-3 days")
-        summary_parts.append("3. Contact healthcare provider if no improvement")
-    
-    summary_parts.append("")
-    summary_parts.append("📍 **DISCLAIMER**: Educational demo only — Not medical advice.")
-    summary_parts.append(f"Generated on: {now_ts()}")
-    
-    # Return ONLY the human-readable string
-    return "\n".join(summary_parts)
 # ---------- Pipeline runner ----------
 def run_pipeline(input_state: Dict[str, Any]) -> Dict[str, Any]:
     # pipeline: ingestion -> imaging -> therapy -> pharmacy -> coordinator
@@ -527,8 +427,6 @@ def run_pipeline(input_state: Dict[str, Any]) -> Dict[str, Any]:
     return state
 
 # If run as script for quick test
-# If run as script for quick test
-# If run as script for quick test
 if __name__ == "__main__":
     random.seed(42)
     demo_state = {
@@ -537,9 +435,4 @@ if __name__ == "__main__":
         "_seed": 123
     }
     out = run_pipeline(demo_state)
-    
-    # Print ONLY the human-readable output
-    final_output = out.get("final_output", "")
-    print("=" * 60)
-    print(final_output)
-    print("=" * 60)
+    print(json.dumps(out.get("final_output", {}), indent=2))
