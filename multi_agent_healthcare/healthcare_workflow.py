@@ -427,12 +427,23 @@ def run_pipeline(input_state: Dict[str, Any]) -> Dict[str, Any]:
     return state
 
 # If run as script for quick test
+import io, sys, contextlib
+
 if __name__ == "__main__":
+    import tensorflow as tf
+    tf.get_logger().setLevel('ERROR')
+    import os
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
     random.seed(42)
     demo_state = {
         "patient": {"age":45,"allergies":["ibuprofen"], "pincode": "400053"},
         "pdf_text": "Patient complains of cough and mild fever. No chest pain.",
         "_seed": 123
     }
-    out = run_pipeline(demo_state)
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):  # silence TF prints
+        out = run_pipeline(demo_state)
+
     print(json.dumps(out.get("final_output", {}), indent=2))
