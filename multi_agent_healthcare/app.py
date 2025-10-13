@@ -53,6 +53,10 @@ def extract_patient_metadata(text):
         metadata["allergies"] = [
             a.strip() for a in allergies_match[0].split(",") if a.strip()
         ]
+    location_match = re.findall(r'Location[:\s]+([A-Za-z0-9,\-\s]+)', text)
+    if location_match:
+        metadata["location"] = location_match[0].strip()
+    
 
     return metadata
 
@@ -81,6 +85,7 @@ with st.sidebar:
     age_val = extracted_patient.get("age", 45)
     gender_val = extracted_patient.get("gender", "unknown")
     allergy_val = ", ".join(extracted_patient.get("allergies", ["ibuprofen"]))
+    location_val = extracted_patient.get("location", "unknown")
 
     st.markdown("---")
     st.header("Patient meta")
@@ -94,7 +99,7 @@ with st.sidebar:
         else 0,
     )
     allergies = st.text_input("Allergies (comma-separated)", value=allergy_val)
-    pincode = st.text_input("Pincode (optional)", value="")
+    location = st.text_input("location", value=location_val)
 
 # ------------------------------------------------------------
 # Main button to run pipeline
