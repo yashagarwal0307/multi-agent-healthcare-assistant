@@ -119,7 +119,7 @@ if run:
                 "allergies": [
                     a.strip() for a in allergies.split(",") if a.strip()
                 ],
-                "pincode": pincode,
+                "location": location,
             }
         }
 
