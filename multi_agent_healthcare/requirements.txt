@@ -6,4 +6,4 @@ pymupdf
 pytesseract
 langgraph
 pytest
-pdfplummber
+pdfplumber
